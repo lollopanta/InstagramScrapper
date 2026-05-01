@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Play, RefreshCw } from "lucide-react";
 import { api, type ScrapeJob } from "@/lib/api";
+import { normalizeInstagramSource, type ScrapeSourceType } from "@/lib/instagram-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export function ScraperPage() {
   const queryClient = useQueryClient();
-  const [sourceType, setSourceType] = useState<"USERNAME" | "HASHTAG" | "LOCATION">("USERNAME");
+  const [sourceType, setSourceType] = useState<ScrapeSourceType>("USERNAME");
   const [sourceValue, setSourceValue] = useState("");
+  const normalizedSource = normalizeInstagramSource(sourceType, sourceValue);
 
   const jobsQuery = useQuery({
     queryKey: ["scraper-jobs"],
@@ -25,7 +27,7 @@ export function ScraperPage() {
   });
 
   const createJob = useMutation({
-    mutationFn: async () => api.post("/api/scraper/jobs", { sourceType, sourceValue }),
+    mutationFn: async () => api.post("/api/scraper/jobs", normalizedSource),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["scraper-jobs"] })
   });
 
@@ -48,7 +50,7 @@ export function ScraperPage() {
             }}
           >
             <Field label="Source">
-              <Select value={sourceType} onChange={(event) => setSourceType(event.target.value as typeof sourceType)}>
+              <Select value={sourceType} onChange={(event) => setSourceType(event.target.value as ScrapeSourceType)}>
                 <option value="USERNAME">Username</option>
                 <option value="HASHTAG">Hashtag</option>
                 <option value="LOCATION">Location</option>
@@ -58,9 +60,15 @@ export function ScraperPage() {
               <Input
                 value={sourceValue}
                 onChange={(event) => setSourceValue(event.target.value)}
-                placeholder="username, hashtag, location id"
+                placeholder="username or https://www.instagram.com/username/"
                 required
               />
+              {sourceValue.trim() ? (
+                <p className="text-xs text-muted-foreground">
+                  Detected {normalizedSource.sourceType.toLowerCase()}:{" "}
+                  <span className="font-medium text-foreground">{normalizedSource.sourceValue || "none"}</span>
+                </p>
+              ) : null}
             </Field>
             <Button className="self-end" disabled={createJob.isPending}>
               <Play className="h-4 w-4" />
