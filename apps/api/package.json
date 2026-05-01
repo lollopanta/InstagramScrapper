@@ -1,0 +1,52 @@
+{
+  "name": "@datareach/api",
+  "version": "0.1.0",
+  "private": true,
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "dev:worker:scraper": "tsx watch src/workers/scraper.worker.ts",
+    "dev:worker:email": "tsx watch src/workers/email.worker.ts",
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "start:worker:scraper": "node dist/workers/scraper.worker.js",
+    "start:worker:email": "node dist/workers/email.worker.js",
+    "start:docker": "nodemon --exitcrash --watch dist --ext js,json --delay 2 --exec node dist/server.js",
+    "start:docker:worker:scraper": "nodemon --exitcrash --watch dist --ext js,json --delay 2 --exec node dist/workers/scraper.worker.js",
+    "start:docker:worker:email": "nodemon --exitcrash --watch dist --ext js,json --delay 2 --exec node dist/workers/email.worker.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/jwt": "^8.0.1",
+    "@fastify/rate-limit": "^9.1.0",
+    "@fastify/swagger": "^8.14.0",
+    "@fastify/swagger-ui": "^2.1.0",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.21.2",
+    "fastify": "^4.28.1",
+    "fastify-plugin": "^4.5.1",
+    "fastify-type-provider-zod": "^2.0.0",
+    "ioredis": "^5.4.1",
+    "json2csv": "^6.0.0-alpha.2",
+    "nodemailer": "^6.9.16",
+    "nodemon": "^3.1.10",
+    "playwright": "^1.48.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/json2csv": "^5.0.7",
+    "@types/node": "^22.9.0",
+    "@types/nodemailer": "^6.4.16",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

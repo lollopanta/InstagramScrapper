@@ -1,0 +1,19 @@
+{
+  "name": "datareach-oss",
+  "version": "0.1.0",
+  "private": true,
+  "license": "BSD-3-Clause",
+  "packageManager": "pnpm@10.33.0",
+  "workspaces": [
+    "apps/api"
+  ],
+  "scripts": {
+    "dev:api": "pnpm --filter @datareach/api dev",
+    "dev:frontend": "pnpm --filter @datareach/frontend dev",
+    "dev:scraper": "pnpm --filter @datareach/api dev:worker:scraper",
+    "dev:email": "pnpm --filter @datareach/api dev:worker:email",
+    "build": "pnpm -r build",
+    "lint": "pnpm --filter @datareach/api lint && pnpm --filter @datareach/frontend build",
+    "prisma:migrate": "pnpm --filter @datareach/api prisma:migrate"
+  }
+}
