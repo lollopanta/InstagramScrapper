@@ -43,12 +43,37 @@ export type Lead = {
 
 export type ScrapeJob = {
   id: string;
+  bullJobId?: string | null;
   sourceType: "USERNAME" | "HASHTAG" | "LOCATION";
   sourceValue: string;
   status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
   leadsFound: number;
   error?: string | null;
   createdAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+};
+
+export type ScrapeJobDetails = {
+  job: ScrapeJob;
+  targetUrl: string;
+  queue: {
+    id?: string;
+    name: string;
+    state: string | null;
+    progress: unknown;
+    attemptsMade: number;
+    attemptsStarted?: number;
+    failedReason?: string;
+    stacktrace: string[];
+    timestamp?: number;
+    processedOn?: number;
+    finishedOn?: number;
+    delay?: number;
+    data: unknown;
+    logs: string[];
+    logCount: number;
+  } | null;
 };
 
 export type Campaign = {
