@@ -15,10 +15,10 @@ type AuthPageProps = {
 
 export function AuthPage({ onAuthenticated }: AuthPageProps) {
   const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("founder@example.com");
-  const [password, setPassword] = useState("change-me-123");
-  const [name, setName] = useState("Founder");
-  const [workspaceName, setWorkspaceName] = useState("DataReach Workspace");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("");
 
   const authMutation = useMutation({
     mutationFn: async () => {
@@ -59,15 +59,26 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
             >
               <TabsContent value="register" className="mt-0 space-y-4">
                 <Field label="Name">
-                  <Input value={name} onChange={(event) => setName(event.target.value)} />
+                  <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Founder" />
                 </Field>
                 <Field label="Workspace">
-                  <Input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} />
+                  <Input
+                    value={workspaceName}
+                    onChange={(event) => setWorkspaceName(event.target.value)}
+                    placeholder="DataReach Workspace"
+                  />
                 </Field>
               </TabsContent>
               <TabsContent value="login" className="mt-0" />
               <Field label="Email">
-                <Input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="founder@example.com"
+                  required
+                />
               </Field>
               <Field label="Password">
                 <Input
@@ -75,6 +86,8 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
+                  placeholder="change-me-123"
+                  required
                 />
               </Field>
               {authMutation.error ? (

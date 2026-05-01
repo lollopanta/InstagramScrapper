@@ -13,13 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function CampaignsPage() {
   const queryClient = useQueryClient();
-  const [name, setName] = useState("Instagram warm outreach");
+  const [name, setName] = useState("");
   const [smtpAccountId, setSmtpAccountId] = useState("");
-  const [dailyLimit, setDailyLimit] = useState(50);
-  const [minDelaySec, setMinDelaySec] = useState(45);
-  const [maxDelaySec, setMaxDelaySec] = useState(180);
-  const [subject, setSubject] = useState("Quick question for {{name}}");
-  const [bodyHtml, setBodyHtml] = useState("<p>Hi {{name}},</p><p>I found @{{username}} and wanted to connect.</p>");
+  const [dailyLimit, setDailyLimit] = useState("");
+  const [minDelaySec, setMinDelaySec] = useState("");
+  const [maxDelaySec, setMaxDelaySec] = useState("");
+  const [subject, setSubject] = useState("");
+  const [bodyHtml, setBodyHtml] = useState("");
 
   const campaignsQuery = useQuery({
     queryKey: ["campaigns"],
@@ -42,9 +42,9 @@ export function CampaignsPage() {
       api.post("/api/campaigns", {
         name,
         smtpAccountId: smtpAccountId || undefined,
-        dailyLimit,
-        minDelaySec,
-        maxDelaySec,
+        dailyLimit: dailyLimit ? Number(dailyLimit) : undefined,
+        minDelaySec: minDelaySec ? Number(minDelaySec) : undefined,
+        maxDelaySec: maxDelaySec ? Number(maxDelaySec) : undefined,
         warmupEnabled: true,
         targetTagIds: [],
         sequenceSteps: [{ stepIndex: 0, delayDays: 0, subject, bodyHtml }]
@@ -89,7 +89,12 @@ export function CampaignsPage() {
               }}
             >
               <Field label="Name">
-                <Input value={name} onChange={(event) => setName(event.target.value)} />
+                <Input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Instagram warm outreach"
+                  required
+                />
               </Field>
               <Field label="SMTP account">
                 <Select value={smtpAccountId} onChange={(event) => setSmtpAccountId(event.target.value)}>
@@ -103,20 +108,46 @@ export function CampaignsPage() {
               </Field>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Daily limit">
-                  <Input type="number" value={dailyLimit} onChange={(event) => setDailyLimit(Number(event.target.value))} />
+                  <Input
+                    type="number"
+                    value={dailyLimit}
+                    onChange={(event) => setDailyLimit(event.target.value)}
+                    placeholder="50"
+                  />
                 </Field>
                 <Field label="Min delay">
-                  <Input type="number" value={minDelaySec} onChange={(event) => setMinDelaySec(Number(event.target.value))} />
+                  <Input
+                    type="number"
+                    value={minDelaySec}
+                    onChange={(event) => setMinDelaySec(event.target.value)}
+                    placeholder="45"
+                  />
                 </Field>
                 <Field label="Max delay">
-                  <Input type="number" value={maxDelaySec} onChange={(event) => setMaxDelaySec(Number(event.target.value))} />
+                  <Input
+                    type="number"
+                    value={maxDelaySec}
+                    onChange={(event) => setMaxDelaySec(event.target.value)}
+                    placeholder="180"
+                  />
                 </Field>
               </div>
               <Field label="Subject">
-                <Input value={subject} onChange={(event) => setSubject(event.target.value)} />
+                <Input
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="Quick question for {{name}}"
+                  required
+                />
               </Field>
               <Field label="HTML body">
-                <Textarea value={bodyHtml} onChange={(event) => setBodyHtml(event.target.value)} className="min-h-40 font-mono" />
+                <Textarea
+                  value={bodyHtml}
+                  onChange={(event) => setBodyHtml(event.target.value)}
+                  className="min-h-40 font-mono"
+                  placeholder="<p>Hi {{name}},</p><p>I found @{{username}} and wanted to connect.</p>"
+                  required
+                />
               </Field>
               <Button disabled={createCampaign.isPending}>
                 <Plus className="h-4 w-4" />

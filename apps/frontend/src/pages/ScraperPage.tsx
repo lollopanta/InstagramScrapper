@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export function ScraperPage() {
   const queryClient = useQueryClient();
   const [sourceType, setSourceType] = useState<"USERNAME" | "HASHTAG" | "LOCATION">("USERNAME");
-  const [sourceValue, setSourceValue] = useState("example");
+  const [sourceValue, setSourceValue] = useState("");
 
   const jobsQuery = useQuery({
     queryKey: ["scraper-jobs"],
@@ -55,7 +55,12 @@ export function ScraperPage() {
               </Select>
             </Field>
             <Field label="Value">
-              <Input value={sourceValue} onChange={(event) => setSourceValue(event.target.value)} placeholder="username, hashtag, location id" />
+              <Input
+                value={sourceValue}
+                onChange={(event) => setSourceValue(event.target.value)}
+                placeholder="username, hashtag, location id"
+                required
+              />
             </Field>
             <Button className="self-end" disabled={createJob.isPending}>
               <Play className="h-4 w-4" />
