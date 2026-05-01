@@ -20,6 +20,8 @@ services:
     command: sh -c "pnpm prisma:deploy && pnpm start:docker"
     restart: on-failure:5
     env_file: .env
+    volumes:
+      - ./apps/api/cookie.json:/app/apps/api/cookie.json:ro
     ports:
       - "4000:4000"
     depends_on:
@@ -29,6 +31,8 @@ services:
         condition: service_started
       mailcatcher:
         condition: service_started
+      scraper-python:
+        condition: service_started
 
   scraper-worker:
     build:
@@ -37,11 +41,25 @@ services:
     command: pnpm start:docker:worker:scraper
     restart: on-failure:5
     env_file: .env
+    volumes:
+      - ./apps/api/cookie.json:/app/apps/api/cookie.json:ro
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
+      scraper-python:
+        condition: service_started
+
+  scraper-python:
+    build:
+      context: .
+      dockerfile: apps/scraper-python/Dockerfile
+    restart: on-failure:5
+    environment:
+      IG_COOKIE_FILE: /app/apps/api/cookie.json
+    volumes:
+      - ./apps/api/cookie.json:/app/apps/api/cookie.json:ro
 
   email-worker:
     build:

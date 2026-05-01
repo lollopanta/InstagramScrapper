@@ -19,8 +19,13 @@ const worker = new Worker<ScrapeJobPayload>(
 
     try {
       const scraper = new InstagramScraperService();
+      await job.updateProgress({ profileStatus: "CHECKING", source: job.data.sourceValue });
+      await job.log(`Checking Instagram ${job.data.sourceType.toLowerCase()} "${job.data.sourceValue}"`);
       const leads = await scraper.scrape(job.data.sourceType, job.data.sourceValue);
+      await job.updateProgress({ profileStatus: "FOUND", source: job.data.sourceValue, leadsParsed: leads.length });
+      await job.log(`Instagram target exists. Parsed ${leads.length} lead record(s).`);
       const leadsFound = await upsertScrapedLeads(prisma, job.data.workspaceId, leads);
+      await job.log(`Stored ${leadsFound} lead record(s).`);
 
       await prisma.scrapeJob.update({
         where: { id: job.data.scrapeJobId },

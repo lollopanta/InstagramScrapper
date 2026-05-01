@@ -18,6 +18,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default("DataReach Dev <dev@datareach.local>"),
+  PYTHON_SCRAPER_URL: z.string().url().default("http://scraper-python:8000"),
   SCRAPER_CONCURRENCY: z.coerce.number().int().positive().default(2),
   EMAIL_CONCURRENCY: z.coerce.number().int().positive().default(4),
   SCRAPER_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(12),

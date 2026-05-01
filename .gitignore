@@ -1,6 +1,8 @@
 # Logs
 logs
 *.log
+*.pyc
+__pycache__/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -69,6 +71,8 @@ web_modules/
 .env
 .env.*
 !.env.example
+apps/api/cookie.json
+InstaGPy/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -142,3 +146,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 .playwright-cli/
+
+
+#Infos
+cookie.json

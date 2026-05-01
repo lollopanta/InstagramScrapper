@@ -196,6 +196,17 @@ function ScrapeJobDetail({
 
           <Card>
             <CardHeader>
+              <CardTitle>Detection</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <KeyValue label="Profile status" value={readProgressValue(queue?.progress, "profileStatus") ?? inferProfileStatus(job, queue)} />
+              <KeyValue label="Parsed leads" value={readProgressValue(queue?.progress, "leadsParsed") ?? "Not parsed"} />
+              <KeyValue label="Source checked" value={readProgressValue(queue?.progress, "source") ?? job.sourceValue} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Target</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
@@ -312,6 +323,24 @@ function formatJson(value: unknown) {
   if (value === undefined || value === null) return "None";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
   return JSON.stringify(value, null, 2);
+}
+
+function readProgressValue(progress: unknown, key: string) {
+  if (!progress || typeof progress !== "object" || Array.isArray(progress)) return null;
+  const value = (progress as Record<string, unknown>)[key];
+  if (value === undefined || value === null) return null;
+  return String(value);
+}
+
+function inferProfileStatus(job: ScrapeJob, queue?: ScrapeJobDetails["queue"]) {
+  const error = `${job.error ?? ""} ${queue?.failedReason ?? ""}`.toLowerCase();
+  if (error.includes("not found")) return "NOT_FOUND";
+  if (error.includes("login required")) return "LOGIN_REQUIRED";
+  if (error.includes("rate limited")) return "RATE_LIMITED";
+  if (error.includes("blocked")) return "BLOCKED";
+  if (job.status === "COMPLETED") return "FOUND";
+  if (job.status === "RUNNING") return "CHECKING";
+  return "UNKNOWN";
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

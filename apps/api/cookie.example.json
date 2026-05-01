@@ -1,0 +1,11 @@
+[
+  {
+    "name": "sessionid",
+    "value": "replace-with-your-instagram-sessionid",
+    "domain": ".instagram.com",
+    "path": "/",
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  }
+]

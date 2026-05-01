@@ -1,4 +1,4 @@
-import { chromium, type Browser } from "playwright";
+import { env } from "../config/env.js";
 
 export type ScrapedInstagramLead = {
   instagramId?: string;
@@ -12,55 +12,61 @@ export type ScrapedInstagramLead = {
   source?: string;
 };
 
-const userAgents = [
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36",
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
-];
+export type InstagramProfileCheckStatus =
+  | "FOUND"
+  | "NOT_FOUND"
+  | "LOGIN_REQUIRED"
+  | "RATE_LIMITED"
+  | "BLOCKED"
+  | "UNSUPPORTED"
+  | "UNKNOWN";
 
-const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+type PythonScraperResponse = {
+  status: InstagramProfileCheckStatus;
+  leads?: ScrapedInstagramLead[];
+  error?: string | null;
+  raw?: unknown;
+};
+
+export class InstagramProfileNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InstagramProfileNotFoundError";
+  }
+}
+
+export class InstagramAccessError extends Error {
+  constructor(
+    message: string,
+    public readonly status: InstagramProfileCheckStatus
+  ) {
+    super(message);
+    this.name = "InstagramAccessError";
+  }
+}
 
 export class InstagramScraperService {
-  private browser?: Browser;
-
   async scrape(sourceType: string, sourceValue: string): Promise<ScrapedInstagramLead[]> {
-    this.browser = await chromium.launch({
-      headless: true,
-      executablePath: process.env.CHROMIUM_PATH
+    const response = await fetch(new URL("/scrape", env.PYTHON_SCRAPER_URL), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sourceType, sourceValue })
     });
-    const context = await this.browser.newContext({
-      userAgent: userAgents[Math.floor(Math.random() * userAgents.length)],
-      viewport: { width: 1365, height: 900 }
-    });
-    const page = await context.newPage();
 
-    try {
-      const url = this.toInstagramUrl(sourceType, sourceValue);
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
-      await page.waitForTimeout(2_000 + Math.floor(Math.random() * 2_000));
-
-      const text = await page.locator("body").innerText({ timeout: 10_000 }).catch(() => "");
-      const emails = text.match(emailRegex) ?? [];
-      const username = sourceType === "USERNAME" ? sourceValue.replace(/^@/, "").toLowerCase() : sourceValue.toLowerCase();
-
-      return [
-        {
-          username,
-          bio: text.slice(0, 500),
-          publicEmail: emails[0]?.toLowerCase(),
-          source: `${sourceType}:${sourceValue}`
-        }
-      ];
-    } finally {
-      await context.close();
-      await this.browser?.close();
+    if (!response.ok) {
+      throw new InstagramAccessError(`Python scraper returned HTTP ${response.status}.`, "UNKNOWN");
     }
+
+    const result = (await response.json()) as PythonScraperResponse;
+    this.assertReachable(sourceType, sourceValue, result);
+    return result.leads ?? [];
   }
 
-  private toInstagramUrl(sourceType: string, sourceValue: string) {
-    const clean = sourceValue.replace(/^[@#]/, "");
-    if (sourceType === "HASHTAG") return `https://www.instagram.com/explore/tags/${encodeURIComponent(clean)}/`;
-    if (sourceType === "LOCATION") return `https://www.instagram.com/explore/locations/${encodeURIComponent(clean)}/`;
-    return `https://www.instagram.com/${encodeURIComponent(clean)}/`;
+  private assertReachable(sourceType: string, sourceValue: string, result: PythonScraperResponse) {
+    if (result.status === "FOUND" || result.status === "UNKNOWN") return;
+    if (result.status === "NOT_FOUND") {
+      throw new InstagramProfileNotFoundError(result.error ?? `${sourceType.toLowerCase()} "${sourceValue}" was not found on Instagram.`);
+    }
+    throw new InstagramAccessError(result.error ?? `Instagram returned ${result.status.toLowerCase().replaceAll("_", " ")} for ${sourceValue}.`, result.status);
   }
 }
