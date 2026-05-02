@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, Eye, Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, Play, RefreshCw, UserRoundSearch, Users } from "lucide-react";
 import { api, type ScrapeJob, type ScrapeJobDetails } from "@/lib/api";
 import { normalizeInstagramSource, type ScrapeSourceType } from "@/lib/instagram-input";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +15,12 @@ export function ScraperPage() {
   const queryClient = useQueryClient();
   const [sourceType, setSourceType] = useState<ScrapeSourceType>("USERNAME");
   const [sourceValue, setSourceValue] = useState("");
+  const [followersValue, setFollowersValue] = useState("");
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const normalizedSource = normalizeInstagramSource(sourceType, sourceValue);
+  const normalizedFollowersSource = normalizeInstagramSource("USERNAME", followersValue);
+  const followerProfile =
+    normalizedFollowersSource.sourceType === "USERNAME" ? normalizedFollowersSource.sourceValue : "";
 
   const jobsQuery = useQuery({
     queryKey: ["scraper-jobs"],
@@ -30,6 +34,19 @@ export function ScraperPage() {
   const createJob = useMutation({
     mutationFn: async () => api.post("/api/scraper/jobs", normalizedSource),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["scraper-jobs"] })
+  });
+
+  const createFollowerJob = useMutation({
+    mutationFn: async () =>
+      api.post<{ id: string; status: string }>("/api/scraper/jobs", {
+        sourceType: "USERNAME",
+        sourceValue: followerProfile
+      }),
+    onSuccess: ({ data }) => {
+      queryClient.invalidateQueries({ queryKey: ["scraper-jobs"] });
+      setFollowersValue("");
+      setSelectedJobId(data.id);
+    }
   });
 
   const selectedJobQuery = useQuery({
@@ -59,6 +76,48 @@ export function ScraperPage() {
         <h1 className="text-2xl font-semibold tracking-normal">Scraper</h1>
         <p className="text-sm text-muted-foreground">Queue Instagram collection jobs with backend rate limiting.</p>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile followers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="grid gap-3 lg:grid-cols-[1fr_auto]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (followerProfile) createFollowerJob.mutate();
+            }}
+          >
+            <Field label="Instagram profile">
+              <div className="relative">
+                <UserRoundSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  value={followersValue}
+                  onChange={(event) => setFollowersValue(event.target.value)}
+                  placeholder="username or https://www.instagram.com/username/"
+                  required
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span>Fetches the profile and every follower returned by the Instagram scraper.</span>
+                {followersValue.trim() ? (
+                  <Badge variant={followerProfile ? "secondary" : "outline"}>
+                    {followerProfile ? `Detected @${followerProfile}` : "Paste a profile URL or username"}
+                  </Badge>
+                ) : null}
+              </div>
+            </Field>
+            <Button className="self-end" disabled={createFollowerJob.isPending || !followerProfile}>
+              <Users className="h-4 w-4" />
+              Fetch followers
+            </Button>
+          </form>
+          {createFollowerJob.isError ? (
+            <p className="mt-3 text-sm text-destructive">Unable to queue follower fetch. Check the API logs and authentication state.</p>
+          ) : null}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>New job</CardTitle>
