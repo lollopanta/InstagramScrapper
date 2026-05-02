@@ -48,9 +48,9 @@ def health() -> dict[str, str]:
 @app.post("/scrape", response_model=ScrapeResponse)
 def scrape(payload: ScrapeRequest) -> ScrapeResponse:
     try:
-      session_ids = load_session_ids()
+        session_ids = load_session_ids()
     except Exception as error:
-      return ScrapeResponse(status="LOGIN_REQUIRED", error=str(error))
+        return ScrapeResponse(status="LOGIN_REQUIRED", error=str(error))
 
     try:
         if payload.sourceType == "USERNAME":
@@ -81,6 +81,8 @@ def scrape_username(username: str, session_ids: list[str]) -> ScrapeResponse:
         followingCount=((user.get("edge_follow") or {}).get("count") or 0),
         source=f"USERNAME:{username}",
     )
+    leads = [lead]
+    seen = {lead.username.lower()}
 
     contact = fetch_contact_details(client, user.get("id"))
     if contact:
@@ -91,7 +93,89 @@ def scrape_username(username: str, session_ids: list[str]) -> ScrapeResponse:
         lead.followerCount = contact.get("follower_count") or lead.followerCount
         lead.followingCount = contact.get("following_count") or lead.followingCount
 
-    return ScrapeResponse(status="FOUND", leads=[lead], raw={"profile": info, "contact": contact})
+    followers_response = fetch_followers(client, lead.username)
+    followers = extract_collection(followers_response)
+    for follower in followers:
+        follower_lead = normalize_follower(follower, lead.username)
+        if not follower_lead:
+            continue
+        follower_key = follower_lead.username.lower()
+        if follower_key in seen:
+            continue
+        seen.add(follower_key)
+        leads.append(follower_lead)
+
+    return ScrapeResponse(
+        status="FOUND",
+        leads=leads,
+        raw={
+            "profile": info,
+            "contact": contact,
+            "followers": {
+                "count": len(followers),
+                "stored": max(len(leads) - 1, 0),
+                "end_cursor": followers_response.get("end_cursor") if isinstance(followers_response, dict) else None,
+                "has_next_page": followers_response.get("has_next_page") if isinstance(followers_response, dict) else None,
+            },
+        },
+    )
+
+
+def fetch_followers(client: InstaGPy, username: str) -> Any:
+    return client.get_user_friends(
+        username=username,
+        followers_list=True,
+        total=None,
+        pagination=True,
+    ) or {}
+
+
+def normalize_follower(entry: dict[str, Any], source_username: str) -> ScrapedLead | None:
+    node = (entry or {}).get("node") if isinstance(entry, dict) else None
+    follower = node if isinstance(node, dict) else entry
+    if not isinstance(follower, dict):
+        return None
+
+    username = follower.get("username")
+    if not username:
+        return None
+
+    instagram_id = follower.get("id") or follower.get("pk")
+    bio = follower.get("biography") or follower.get("bio")
+    website = follower.get("external_url") or follower.get("website")
+
+    return ScrapedLead(
+        instagramId=str(instagram_id) if instagram_id else None,
+        username=username,
+        fullName=follower.get("full_name") or follower.get("name"),
+        bio=bio,
+        website=website,
+        publicEmail=follower.get("public_email") or follower.get("business_email"),
+        followerCount=to_int(follower.get("follower_count") or follower.get("followers")),
+        followingCount=to_int(follower.get("following_count") or follower.get("following")),
+        source=f"FOLLOWER_OF:{source_username}",
+    )
+
+
+def extract_collection(response: Any) -> list[dict[str, Any]]:
+    if isinstance(response, list):
+        return [entry for entry in response if isinstance(entry, dict)]
+    if not isinstance(response, dict):
+        return []
+    entries = response.get("data") or response.get("users") or []
+    if not isinstance(entries, list):
+        return []
+    return [entry for entry in entries if isinstance(entry, dict)]
+
+
+def to_int(value: Any) -> int:
+    if isinstance(value, bool) or value is None:
+        return 0
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return 0
 
 
 def scrape_hashtag(hashtag: str, session_ids: list[str]) -> ScrapeResponse:
@@ -160,7 +244,7 @@ def classify_error(error: Exception) -> ScrapeResponse:
         return ScrapeResponse(status="LOGIN_REQUIRED", error=message)
     if "wait a few minutes" in lowered or "rate" in lowered or "429" in lowered:
         return ScrapeResponse(status="RATE_LIMITED", error=message)
-    if "forbidden" in lowered or "blocked" in lowered or "403" in lowered:
+    if "forbidden" in lowered or "blocked" in lowered or "private" in lowered or "403" in lowered:
         return ScrapeResponse(status="BLOCKED", error=message)
 
     return ScrapeResponse(status="UNKNOWN", error=message)
